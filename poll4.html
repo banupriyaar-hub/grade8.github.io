@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Which social media platform is the best?</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, #EEF3D2, #FC8884);
+      color: #333;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 960px;
+      width: 100%;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+    }
+    .option-group {
+      background: rgba(255,255,255,0.3);
+      border: 1px solid rgba(0,0,0,0.1);
+      padding: 14px;
+      border-radius: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .option {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 12px;
+    }
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid #000;
+    }
+    .bar {
+      height: 8px;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.1);
+      overflow: hidden;
+      width: 100%;
+    }
+    .bar span {
+      display: block;
+      height: 100%;
+      transition: width 0.5s ease;
+      border-radius: inherit;
+    }
+    button {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(0,0,0,0.3);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #000;
+    }
+    button:hover {
+      background: rgba(0,0,0,0.3);
+    }
+    canvas {
+      width: 100%;
+      max-width: 360px;
+      aspect-ratio: 1 / 1;
+      display: block;
+      margin: 0 auto;
+    }
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.3);
+      border: 1px solid rgba(0,0,0,0.1);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+    @media (max-width: 860px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Which social media platform is the best?</h1>
+      <p>Vote once per refresh. The pie chart updates live with your choice.</p>
+
+      <div id="options"></div>
+
+      <div class="footer">
+        <div id="total">Total votes: 0</div>
+        <button id="reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Overall results</h2>
+      <canvas id="pie" width="400" height="400"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+<script>
+const data = [
+  { label: "X (Twitter)", color: "#1DA1F2" },  
+  { label: "Facebook", color: "#FF5733" },    
+  { label: "Instagram", color: "#E1306C" },    
+  { label: "Snapchat", color: "#FFFC00" }      
+];
+
+const votes = Array(data.length).fill(0);
+const optionsEl = document.getElementById("options");
+const legendEl = document.getElementById("legend");
+const totalEl = document.getElementById("total");
+const resetBtn = document.getElementById("reset");
+const canvas = document.getElementById("pie");
+const ctx = canvas.getContext("2d");
+
+let currentAngles = Array(data.length).fill(0);
+
+function update() {
+  const total = votes.reduce((a,b)=>a+b,0);
+  optionsEl.innerHTML = "";
+
+  data.forEach((item,i)=>{
+    const percent = total ? Math.round((votes[i]/total)*100) : 0;
+
+    const group = document.createElement("div");
+    group.className = "option-group";
+
+    const row = document.createElement("div");
+    row.className = "option";
+
+    const sw = document.createElement("span");
+    sw.className = "swatch";
+    sw.style.background = item.color;
+
+    const label = document.createElement("div");
+    label.textContent = item.label;
+
+    const pct = document.createElement("div");
+    pct.textContent = `${percent}%`;
+
+    row.appendChild(sw);
+    row.appendChild(label);
+    row.appendChild(pct);
+
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    const fill = document.createElement("span");
+    fill.style.background = item.color;
+    fill.style.width = percent + "%";
+    bar.appendChild(fill);
+
+    const voteBtn = document.createElement("button");
+    voteBtn.textContent = "Vote";
+    voteBtn.onclick = () => { votes[i]++; animatePie(); update(); };
+
+    group.appendChild(row);
+    group.appendChild(bar);
+    group.appendChild(voteBtn);
+    optionsEl.appendChild(group);
+  });
+
+  totalEl.textContent = `Total votes: ${total}`;
+  animatePie();
+  renderLegend();
+}
+
+// Smooth pie animation
+function animatePie() {
+  const total = votes.reduce((a,b)=>a+b,0);
+  const targetAngles = data.map((_,i) => total ? (votes[i]/total)*2*Math.PI : 0);
+ 
+  let startTime = null;
+  function step(timestamp) {
+    if (!startTime) startTime = timestamp;
+    const progress = Math.min((timestamp-startTime)/500,1); // 0.5s animation
+
+    let start = -Math.PI/2;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const cx = canvas.width/2;
+    const cy = canvas.height/2;
+    const r = Math.min(cx,cy)-10;
+
+    data.forEach((item,i)=>{
+      const angle = currentAngles[i] + (targetAngles[i]-currentAngles[i])*progress;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,start,start+angle);
+      ctx.closePath();
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      start += angle;
+    });
+
+    if(progress<1){
+      requestAnimationFrame(step);
+    } else {
+      currentAngles = targetAngles.slice();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function renderLegend() {
+  legendEl.innerHTML = "";
+  data.forEach((item,i)=>{
+    const li = document.createElement("div");
+    li.className = "legend-item";
+
+    const sw = document.createElement("span");
+    sw.className = "swatch";
+    sw.style.background = item.color;
+
+    const txt = document.createElement("span");
+    txt.textContent = `${item.label} (${votes[i]})`;
+
+    li.appendChild(sw);
+    li.appendChild(txt);
+    legendEl.appendChild(li);
+  });
+}
+
+resetBtn.onclick = ()=>{
+  votes.fill(0);
+  currentAngles.fill(0);
+  update();
+};
+
+update();
+</script>
+
+</body>
+</html>
